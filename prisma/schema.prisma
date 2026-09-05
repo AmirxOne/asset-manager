@@ -1,0 +1,149 @@
+// Asset Management System — Prisma Schema
+// Phase 1: Identity & RBAC (docs/01-DATABASE-DESIGN.md)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================ Identity & RBAC ============================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  phone        String?   @unique
+  fullName     String
+  passwordHash String
+  avatarUrl    String?
+  jobTitle     String?
+  isActive     Boolean   @default(true)
+  isSuperAdmin Boolean   @default(false)
+  employeeId   String?   @unique
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  roles    UserRole[]
+  sessions Session[]
+  auditLogs AuditLog[]
+
+  @@index([isActive])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id    String @id @default(cuid())
+  key   String @unique
+  name  String
+  group String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// آستانه‌ی تلاش‌های ورود ناموفق (rate limit) — per identifier+IP
+model LoginAttempt {
+  id          String   @id @default(cuid())
+  identifier  String
+  ip          String?
+  success     Boolean  @default(false)
+  attemptedAt DateTime @default(now())
+
+  @@index([identifier, attemptedAt])
+  @@index([ip, attemptedAt])
+}
+
+// ============================ Audit Log (global) ============================
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  oldValue  Json?
+  newValue  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+// ============================ Org (referenced early; full in Phase 3) ============================
+
+model Employee {
+  id            String   @id @default(cuid())
+  fullName      String
+  personnelCode String   @unique
+  departmentId  String?
+  position      String?
+  managerId     String?
+  email         String?
+  phone         String?
+  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED | TERMINATED
+  hireDate      DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  manager  Employee?  @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  reports  Employee[] @relation("EmployeeManager")
+  user     User?
+}
