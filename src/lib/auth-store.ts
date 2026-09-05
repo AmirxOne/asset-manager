@@ -40,7 +40,7 @@ export const useAuth = create<AuthState>((set, get) => ({
     }
   },
   logout: async () => {
-    await api("/api/auth/login", { method: "DELETE" }).catch(() => {});
+    await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     set({ me: null });
     window.location.href = "/login";
   },
