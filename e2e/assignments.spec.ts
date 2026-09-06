@@ -21,11 +21,12 @@ test("چرخه کامل تخصیص در UI", async ({ page }) => {
   await page.getByRole("button", { name: "ثبت بخش", exact: true }).click();
   await expect(page.getByText(deptName)).toBeVisible({ timeout: 10000 });
 
-  // ۲) کارمند بساز
+  // ۲) کارمند بساز (نام یکتا per-run)
+  const run = Date.now() % 100000;
+  const empName = `زهرا تستی ${run}`;
+  const empCode = `E2E-${run}`;
   await page.goto("/employees");
   await page.getByRole("button", { name: "کارمند جدید" }).click();
-  const empName = "زهرا تستی";
-  const empCode = `E2E-${Date.now() % 100000}`;
   await page.getByLabel("نام و نام خانوادگی *").fill(empName);
   await page.getByLabel("کد پرسنلی *").fill(empCode);
   // انتخاب بخش
@@ -36,7 +37,7 @@ test("چرخه کامل تخصیص در UI", async ({ page }) => {
 
   // ۳) کارمند دوم برای انتقال
   await page.getByRole("button", { name: "کارمند جدید" }).click();
-  const emp2Name = "حسین منتقل";
+  const emp2Name = `حسین منتقل ${run}`;
   await page.getByLabel("نام و نام خانوادگی *").fill(emp2Name);
   await page.getByLabel("کد پرسنلی *").fill(`${empCode}-2`);
   await page.getByRole("button", { name: "ثبت کارمند" }).click();

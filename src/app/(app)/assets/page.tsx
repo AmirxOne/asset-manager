@@ -11,6 +11,7 @@ import { Card, EmptyState, SkeletonTable } from "@/components/ui/card";
 import { FilterBar, type FilterChipsGroup } from "@/components/ui/filter-bar";
 import { StatusBadge, ConditionBadge, ASSET_STATUS_FA, ASSET_CONDITION_FA } from "@/components/ui/badges";
 import { Plus, Search, Layers } from "@/components/ui/icon";
+import { BulkBar } from "./bulk-bar";
 
 interface AssetRow {
   id: string;
@@ -39,6 +40,17 @@ export default function AssetsPage() {
   });
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const canBulk = can("asset:bulk");
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const { data: cats } = useQuery({
     queryKey: ["categories"],
@@ -133,6 +145,7 @@ export default function AssetsPage() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="border-b border-line bg-paper-soft/50 text-[11px] text-ink-soft">
+                  {canBulk && <th className="w-10 px-4 py-2.5"></th>}
                   <th className="px-4 py-2.5 text-right font-medium">کد</th>
                   <th className="px-4 py-2.5 text-right font-medium">نام</th>
                   <th className="px-4 py-2.5 text-right font-medium">دسته / نوع</th>
@@ -144,6 +157,17 @@ export default function AssetsPage() {
               <tbody>
                 {data.data.map((a) => (
                   <tr key={a.id} className="border-b border-line last:border-0 hover:bg-paper-soft/50">
+                    {canBulk && (
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(a.id)}
+                          onChange={() => toggle(a.id)}
+                          aria-label={`انتخاب ${a.code}`}
+                          className="h-4 w-4 cursor-pointer accent-black"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <Link href={`/assets/${a.id}`} className="font-medium text-ink hover:underline" dir="ltr">
                         {a.code}
@@ -184,6 +208,7 @@ export default function AssetsPage() {
           </div>
         )}
       </Card>
+      <BulkBar ids={[...selected]} onClear={() => setSelected(new Set())} />
     </div>
   );
 }
