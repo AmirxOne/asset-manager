@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { Printer } from "@/components/ui/icon";
 import { ASSET_STATUS_FA } from "@/components/ui/badges";
 
 interface EmployeeOpt { id: string; fullName: string; personnelCode: string }
@@ -69,6 +70,14 @@ export function BulkBar({ ids, onClear }: { ids: string[]; onClear: () => void }
             تحویل گروهی
           </Button>
         )}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => window.open(`/api/labels/print?ids=${ids.join(",")}`, "_blank")}
+        >
+          <Printer className="h-3.5 w-3.5" />
+          چاپ برچسب‌ها
+        </Button>
         <Button size="sm" variant="ghost" onClick={onClear}>
           لغو
         </Button>

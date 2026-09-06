@@ -15,6 +15,7 @@ import { allowedTransitions, type AssetStatus } from "@/server/modules/asset-lif
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AssignmentPanel } from "./assignment-panel";
+import { QrPanel } from "./qr-panel";
 
 interface AssetDetail {
   id: string;
@@ -203,6 +204,7 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
 
         <div className="space-y-4">
           <AssignmentPanel assetId={a.id} status={a.status} />
+          <QrPanel assetId={a.id} code={a.code} />
 
           {can("asset:update") && nexts.length > 0 && (
             <Card>
