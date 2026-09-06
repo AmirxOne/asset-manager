@@ -16,7 +16,8 @@ test.describe("Login flow", () => {
     // سایدبار admin باید آیتم‌های مدیریتی را داشته باشد
     await expect(page.getByRole("link", { name: "کاربران" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "نقش‌ها" }).first()).toBeVisible();
-    await expect(page.getByText("سلام مدیر سامانه")).toBeVisible();
+    // داشبورد واقعی (فاز ۹): کارت آماری
+    await expect(page.getByText("کل دارایی‌ها")).toBeVisible({ timeout: 15000 });
   });
 
   test("رمز غلط → پیام خطای فارسی، در داشبورد نمی‌رود", async ({ page }) => {

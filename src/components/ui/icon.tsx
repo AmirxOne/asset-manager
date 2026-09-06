@@ -117,3 +117,5 @@ export const UsersRound = named(ICONSAX_MAP.UsersRound);
 export const Wrench = named(ICONSAX_MAP.Wrench);
 export const X = named(ICONSAX_MAP.X);
 export const XCircle = named(ICONSAX_MAP.XCircle);
+export const House = named(ICONSAX_MAP.DoorOpen);
+export const FileSpreadsheet = named(ICONSAX_MAP.Briefcase);
