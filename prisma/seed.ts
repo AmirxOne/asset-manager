@@ -218,6 +218,16 @@ async function main() {
   console.log(`  ${CATS.length} categories, ${CATS.reduce((a, c) => a + c.types.length, 0)} types`);
 
   console.log("Seeding org data (departments, locations, employees)...");
+  await prisma.supplier.upsert({
+    where: { name: "رایان سیستم" },
+    update: {},
+    create: { name: "رایان سیستم", contactName: "مهندس رضایی", phone: "021-88110022" },
+  });
+  await prisma.supplier.upsert({
+    where: { name: "تجهیز گستر پارس" },
+    update: {},
+    create: { name: "تجهیز گستر پارس", contactName: "خانم موسوی", phone: "021-44556677" },
+  });
   const DEPTS = ["مدیریت", "فناوری اطلاعات", "منابع انسانی", "مالی", "فروش", "بازاریابی"];
   for (const [i, name] of DEPTS.entries()) {
     await prisma.department.upsert({

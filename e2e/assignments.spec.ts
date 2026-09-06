@@ -65,10 +65,19 @@ test("چرخه کامل تخصیص در UI", async ({ page }) => {
   await expect(page.getByRole("dialog")).toBeVisible({ timeout: 10000 });
   const empSelect = page.getByRole("button", { name: "انتخاب کارمند…" });
   await expect(empSelect).toBeVisible({ timeout: 10000 });
+  await page.waitForTimeout(800); // گزینه‌ها fetch شوند
   // دراپ‌داون را باز کن و منتظر گزینه شو
   await empSelect.click();
-  const option = page.getByRole("option", { name: empName }).first();
-  await expect(option).toBeVisible({ timeout: 15000 });
+  let option = page.getByRole("option", { name: empName }).first();
+  try {
+    await expect(option).toBeVisible({ timeout: 4000 });
+  } catch {
+    // هنوز لود نشده — ببند و دوباره باز کن
+    await empSelect.click();
+    await page.waitForTimeout(800);
+    await empSelect.click();
+    await expect(option).toBeVisible({ timeout: 10000 });
+  }
   await option.click();
   await page.getByRole("button", { name: "تحویل", exact: true }).click();
   await page.reload();
@@ -78,9 +87,17 @@ test("چرخه کامل تخصیص در UI", async ({ page }) => {
   await page.getByRole("button", { name: "انتقال به کارمند دیگر" }).click();
   const emp2Select = page.getByRole("button", { name: "انتخاب کارمند…" });
   await expect(emp2Select).toBeVisible({ timeout: 10000 });
+  await page.waitForTimeout(800);
   await emp2Select.click();
-  const option2 = page.getByRole("option", { name: emp2Name }).first();
-  await expect(option2).toBeVisible({ timeout: 15000 });
+  let option2 = page.getByRole("option", { name: emp2Name }).first();
+  try {
+    await expect(option2).toBeVisible({ timeout: 4000 });
+  } catch {
+    await emp2Select.click();
+    await page.waitForTimeout(800);
+    await emp2Select.click();
+    await expect(option2).toBeVisible({ timeout: 10000 });
+  }
   await option2.click();
   await page.getByRole("button", { name: "انتقال", exact: true }).click();
   await page.reload();
