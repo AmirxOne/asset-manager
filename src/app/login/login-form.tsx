@@ -6,6 +6,17 @@ import { useAuth } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
+/** حساب‌های آزمایشی — الگوی meetinghub: کلیک = پر شدن شناسه و رمز */
+const DEMO_ACCOUNTS = [
+  { label: "مدیر کل", email: "admin@ams.local", password: "Admin@123" },
+  { label: "مدیر دارایی", email: "assetmgr@ams.local", password: "Test@1234" },
+  { label: "مدیر IT", email: "itmgr@ams.local", password: "Test@1234" },
+  { label: "کارشناس IT", email: "itstaff@ams.local", password: "Test@1234" },
+  { label: "مدیر انبار", email: "whmgr@ams.local", password: "Test@1234" },
+  { label: "مدیر بخش", email: "deptmgr@ams.local", password: "Test@1234" },
+  { label: "کارمند", email: "employee@ams.local", password: "Test@1234" },
+] as const;
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -70,6 +81,28 @@ export function LoginForm() {
       <Button type="submit" loading={loading} className="mt-5 h-11 w-full">
         ورود
       </Button>
+
+      <div className="mt-5 border-t border-line pt-4">
+        <p className="text-center text-[11px] text-ink-faint">
+          حساب‌های آزمایشی — رمز اکثراً: <span className="font-medium text-ink">Test@1234</span>
+        </p>
+        <div className="mt-2.5 flex flex-wrap justify-center gap-1.5">
+          {DEMO_ACCOUNTS.map((acc) => (
+            <button
+              key={acc.email}
+              type="button"
+              onClick={() => {
+                setIdentifier(acc.email);
+                setPassword(acc.password);
+              }}
+              className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] text-ink transition hover:border-ink/30 hover:bg-paper-soft"
+              title={acc.email}
+            >
+              {acc.label}
+            </button>
+          ))}
+        </div>
+      </div>
     </form>
   );
 }
