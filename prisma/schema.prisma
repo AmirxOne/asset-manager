@@ -38,6 +38,9 @@ model User {
   approvalsGiven RequestApproval[] @relation("RequestApprover")
   requestsFulfilled AssetRequest[] @relation("RequestFulfiller")
   notifications Notification[] @relation("UserNotifications")
+  auditsCreated AuditSession[] @relation("AuditCreator")
+  auditsClosed  AuditSession[] @relation("AuditCloser")
+  auditScans    AuditScan[]    @relation("AuditScanner")
 
   @@index([isActive])
 }
@@ -272,6 +275,7 @@ model Asset {
   supplier  Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   maintenances MaintenanceRecord[]
   requestItems AssetRequestItem[]
+  auditScans  AuditScan[]
 
   @@index([status, assetTypeId])
   @@index([holderEmployeeId])
@@ -453,6 +457,59 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+}
+
+// ============================ Inventory Audit (Phase 8) ============================
+
+/// نشست ممیزی — snapshot از دارایی‌های انتظار در شروع
+model AuditSession {
+  id          String    @id @default(cuid())
+  /// AUD-1405-0001
+  code        String    @unique
+  title       String
+  scope       String    @default("ALL") // ALL | DEPARTMENT | LOCATION
+  scopeId     String?
+  /// OPEN | CLOSED
+  status      String    @default("OPEN")
+  expectedTotal Int
+  createdById String
+  closedById  String?
+  closedAt    DateTime?
+  /// نتیجه نهایی در بستن
+  report      Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdBy User          @relation("AuditCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  closedBy  User?         @relation("AuditCloser", fields: [closedById], references: [id], onDelete: SetNull)
+  scans     AuditScan[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+/// هر اسکن در نشست — یک رکورد به ازای هر دارایی اسکن‌شده
+model AuditScan {
+  id          String   @id @default(cuid())
+  sessionId   String
+  assetId     String?  // اگر کد شناخته شد
+  /// MATCH | UNEXPECTED | MISMATCH
+  result      String
+  /// کدی که اسکن شد (خام)
+  scannedCode String
+  /// اختلاف وضعیت اگر MISMATCH
+  expectedStatus String?
+  foundStatus String?
+  note        String?
+  scannedById String
+  scannedAt   DateTime @default(now())
+
+  session   AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  asset     Asset?       @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  scannedBy User         @relation("AuditScanner", fields: [scannedById], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, assetId])
+  @@index([sessionId])
 }
 
 /// هر تحویل/عودت/انتقال = رکورد با تاریخچه کامل
