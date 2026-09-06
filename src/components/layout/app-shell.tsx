@@ -5,12 +5,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Search, LogOut, Menu, X, Plus, ChevronDown, UserCircle, Layers,
+  Search, LogOut, Menu, X, Plus, ChevronDown, UserCircle, Layers, Bell,
 } from "@/components/ui/icon";
-import { cn } from "@/lib";
+import { cn, faNum } from "@/lib";
 import { groupedVisibleNav, isNavActive } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
 
 function BrandMark({ size = 36 }: { size?: number }) {
   return (
@@ -21,6 +23,66 @@ function BrandMark({ size = 36 }: { size?: number }) {
     >
       <Layers className="h-5 w-5" />
     </span>
+  );
+}
+
+function NotificationBell() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const { data } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api<{ notifications: { id: string; title: string; body: string | null; readAt: string | null; createdAt: string }[]; unreadCount: number }>("/api/notifications"),
+    refetchInterval: 30_000,
+  });
+  const unread = data?.unreadCount ?? 0;
+
+  async function markRead() {
+    await api("/api/notifications", { method: "POST" }).catch(() => {});
+    qc.invalidateQueries({ queryKey: ["notifications"] });
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="اعلان‌ها"
+        className="relative flex h-9 w-9 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+      >
+        <Bell className="h-4.5 w-4.5" />
+        {unread > 0 && (
+          <span className="absolute -top-0.5 left-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+            {faNum(unread)}
+          </span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div dir="rtl" className="absolute left-0 z-20 mt-2 w-80 rounded-md border border-line bg-white p-1.5 shadow-lg">
+            <div className="flex items-center justify-between border-b border-line px-3 py-2">
+              <p className="text-[12px] font-bold">اعلان‌ها</p>
+              {unread > 0 && (
+                <button onClick={markRead} className="text-[11px] text-ink-soft hover:text-ink">
+                  خواندن همه
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {!data || data.notifications.length === 0 ? (
+                <p className="px-3 py-6 text-center text-[12px] text-ink-faint">اعلانی نیست</p>
+              ) : (
+                data.notifications.slice(0, 10).map((n) => (
+                  <div key={n.id} className={`rounded-md px-3 py-2.5 ${n.readAt ? "opacity-60" : "bg-paper-soft"}`}>
+                    <p className="text-[12px] font-medium">{n.title}</p>
+                    {n.body && <p className="mt-0.5 text-[11px] text-ink-soft">{n.body}</p>}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -161,6 +223,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="mr-auto flex items-center gap-1">
+            <NotificationBell />
             <div className="relative">
               <button
                 onClick={() => setUserMenu((v) => !v)}

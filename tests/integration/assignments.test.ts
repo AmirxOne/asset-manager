@@ -240,9 +240,9 @@ describe("RBAC فاز ۳", () => {
     expect(res.status).toBe(403);
   });
 
-  it("my-assets بدون employee لینک‌شده → hasEmployee: false", async () => {
+  it("my-assets برای employee لینک‌شده → hasEmployee: true (seed فاز ۷)", async () => {
     const res = await api("/api/my-assets", { cookie: employeeCookie });
     expect(res.status).toBe(200);
-    expect(res.body.data.hasEmployee).toBe(false);
+    expect(res.body.data.hasEmployee).toBe(true);
   });
 });

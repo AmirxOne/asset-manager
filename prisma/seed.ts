@@ -259,18 +259,25 @@ async function main() {
     (await prisma.department.findUnique({ where: { name: "فناوری اطلاعات" } }));
   if (!itDept) throw new Error("IT department missing");
 
-  const EMPS = [
-    { fullName: "علی رضایی", personnelCode: "EMP-001", position: "کارشناس شبکه" },
+  const EMPS: { fullName: string; personnelCode: string; position: string; linkUser?: string }[] = [
+    { fullName: "علی رضایی", personnelCode: "EMP-001", position: "کارشناس شبکه", linkUser: "employee@ams.local" },
     { fullName: "سارا محمدی", personnelCode: "EMP-002", position: "کارشناس پشتیبانی" },
-    { fullName: "رضا کریمی", personnelCode: "EMP-003", position: "مدیر مالی" },
+    { fullName: "رضا کریمی", personnelCode: "EMP-003", position: "مدیر مالی", linkUser: "deptmgr@ams.local" },
     { fullName: "مریم احمدی", personnelCode: "EMP-004", position: "کارشناس فروش" },
   ];
-  for (const e of EMPS) {
+  for (const { linkUser, ...e } of EMPS) {
     await prisma.employee.upsert({
       where: { personnelCode: e.personnelCode },
       update: {},
       create: { ...e, departmentId: itDept.id },
     });
+    // لینک حساب تستی به پرونده (برای گردش درخواست فاز ۷)
+    if (linkUser) {
+      await prisma.employee.update({
+        where: { personnelCode: e.personnelCode },
+        data: { user: { connect: { email: linkUser } } },
+      }).catch(() => {});
+    }
   }
   console.log(`  ${DEPTS.length} departments, 3 locations, ${EMPS.length} employees`);
 
