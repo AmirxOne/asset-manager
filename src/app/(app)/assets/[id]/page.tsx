@@ -14,6 +14,7 @@ import { ArrowLeft } from "@/components/ui/icon";
 import { allowedTransitions, type AssetStatus } from "@/server/modules/asset-lifecycle";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AssignmentPanel } from "./assignment-panel";
 
 interface AssetDetail {
   id: string;
@@ -201,6 +202,8 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="space-y-4">
+          <AssignmentPanel assetId={a.id} status={a.status} />
+
           {can("asset:update") && nexts.length > 0 && (
             <Card>
               <CardHeader title="تغییر وضعیت" subtitle="گذارهای مجاز از وضعیت فعلی" />

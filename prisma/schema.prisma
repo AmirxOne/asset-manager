@@ -32,6 +32,8 @@ model User {
   auditLogs AuditLog[]
   assetsCreated Asset[] @relation("AssetCreator")
   assetEvents   AssetEvent[] @relation("AssetEventActor")
+  assignmentsMade Assignment[] @relation("AssignmentAssigner")
+  assignmentsReturned Assignment[] @relation("AssignmentReturner")
 
   @@index([isActive])
 }
@@ -125,7 +127,42 @@ model AuditLog {
   @@index([actorId, createdAt])
 }
 
-// ============================ Org (full in Phase 3) ============================
+// ============================ Org (Phase 3) ============================
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String?  @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  employees Employee[] @relation("EmployeeDepartment")
+  assetDepartment Asset[] @relation("AssetDepartment")
+
+  @@index([isActive])
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  name      String
+  code      String?  @unique
+  /// BUILDING | FLOOR | ROOM | WAREHOUSE | BRANCH
+  type      String   @default("ROOM")
+  parentId  String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   Location?  @relation("LocationTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Location[] @relation("LocationTree")
+  assets   Asset[]
+
+  @@index([parentId])
+  @@index([type])
+}
 
 model Employee {
   id            String    @id @default(cuid())
@@ -142,9 +179,12 @@ model Employee {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  manager  Employee?  @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
-  reports  Employee[] @relation("EmployeeManager")
-  user     User?
+  department Department?      @relation("EmployeeDepartment", fields: [departmentId], references: [id], onDelete: SetNull)
+  manager    Employee?        @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
+  reports    Employee[]       @relation("EmployeeManager")
+  user       User?
+  heldAssets Asset[]          @relation("AssetHolder")
+  assignments Assignment[]
 }
 
 // ============================ Asset core (Phase 2) ============================
@@ -217,6 +257,10 @@ model Asset {
   assetType AssetType     @relation(fields: [assetTypeId], references: [id], onDelete: Restrict)
   createdBy User?         @relation("AssetCreator", fields: [createdById], references: [id], onDelete: SetNull)
   events    AssetEvent[]
+  holder    Employee?     @relation("AssetHolder", fields: [holderEmployeeId], references: [id], onDelete: SetNull)
+  assignments Assignment[]
+  location  Location?     @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  department Department?  @relation("AssetDepartment", fields: [departmentId], references: [id], onDelete: SetNull)
 
   @@index([status, assetTypeId])
   @@index([holderEmployeeId])
@@ -259,4 +303,32 @@ model Settings {
   value     Json
   updatedBy String?
   updatedAt DateTime @updatedAt
+}
+
+// ============================ Assignment (Phase 3) ============================
+
+/// هر تحویل/عودت/انتقال = رکورد با تاریخچه کامل
+model Assignment {
+  id                String    @id @default(cuid())
+  assetId           String
+  employeeId        String
+  assignedById      String?
+  assignedAt        DateTime  @default(now())
+  dueAt             DateTime?
+  returnedAt        DateTime?
+  returnedById      String?
+  status            String    @default("ACTIVE") // ACTIVE | RETURNED
+  conditionAtAssign String?
+  conditionAtReturn String?
+  assignNote        String?
+  returnNote        String?
+
+  asset        Asset         @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  employee     Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  assignedBy   User?         @relation("AssignmentAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  returnedBy   User?         @relation("AssignmentReturner", fields: [returnedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, status])
+  @@index([assetId, status])
+  @@index([assignedAt])
 }

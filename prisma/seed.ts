@@ -217,6 +217,53 @@ async function main() {
   }
   console.log(`  ${CATS.length} categories, ${CATS.reduce((a, c) => a + c.types.length, 0)} types`);
 
+  console.log("Seeding org data (departments, locations, employees)...");
+  const DEPTS = ["مدیریت", "فناوری اطلاعات", "منابع انسانی", "مالی", "فروش", "بازاریابی"];
+  for (const [i, name] of DEPTS.entries()) {
+    await prisma.department.upsert({
+      where: { name },
+      update: {},
+      create: { name, code: ["MGT", "IT", "HR", "FIN", "SLS", "MKT"][i] },
+    });
+  }
+
+  const warehouse = await prisma.location.upsert({
+    where: { code: "WH-M" },
+    update: {},
+    create: { name: "انبار مرکزی", code: "WH-M", type: "WAREHOUSE" },
+  });
+  const hq = await prisma.location.upsert({
+    where: { code: "HQ" },
+    update: {},
+    create: { name: "ساختمان مرکزی", code: "HQ", type: "BUILDING" },
+  });
+  await prisma.location.upsert({
+    where: { code: "FL2" },
+    update: {},
+    create: { name: "طبقه دوم", code: "FL2", type: "FLOOR", parentId: hq.id },
+  });
+  void warehouse;
+
+  const itDept =
+    (await prisma.department.findUnique({ where: { code: "IT" } })) ??
+    (await prisma.department.findUnique({ where: { name: "فناوری اطلاعات" } }));
+  if (!itDept) throw new Error("IT department missing");
+
+  const EMPS = [
+    { fullName: "علی رضایی", personnelCode: "EMP-001", position: "کارشناس شبکه" },
+    { fullName: "سارا محمدی", personnelCode: "EMP-002", position: "کارشناس پشتیبانی" },
+    { fullName: "رضا کریمی", personnelCode: "EMP-003", position: "مدیر مالی" },
+    { fullName: "مریم احمدی", personnelCode: "EMP-004", position: "کارشناس فروش" },
+  ];
+  for (const e of EMPS) {
+    await prisma.employee.upsert({
+      where: { personnelCode: e.personnelCode },
+      update: {},
+      create: { ...e, departmentId: itDept.id },
+    });
+  }
+  console.log(`  ${DEPTS.length} departments, 3 locations, ${EMPS.length} employees`);
+
   console.log("Seeding admin user...");
   const adminHash = await bcrypt.hash("Admin@123", 12);
   await prisma.user.upsert({
