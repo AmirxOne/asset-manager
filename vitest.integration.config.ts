@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     testTimeout: 60000,
     hookTimeout: 60000,
+    fileParallelism: false, // فایل‌ها ترتیبی — seed/truncate تداخل نکنند
     env: {
       DATABASE_URL: "postgresql://meetinghub:meetinghub@localhost:5432/assetmanager_test?schema=public",
     },

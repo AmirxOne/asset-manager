@@ -1,5 +1,5 @@
 // Asset Management System — Prisma Schema
-// Phase 1: Identity & RBAC (docs/01-DATABASE-DESIGN.md)
+// Phase 1: Identity & RBAC · Phase 2: Asset core
 
 generator client {
   provider = "prisma-client-js"
@@ -26,10 +26,12 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
-  roles    UserRole[]
-  sessions Session[]
+  employee  Employee?   @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  roles     UserRole[]
+  sessions  Session[]
   auditLogs AuditLog[]
+  assetsCreated Asset[] @relation("AssetCreator")
+  assetEvents   AssetEvent[] @relation("AssetEventActor")
 
   @@index([isActive])
 }
@@ -94,7 +96,6 @@ model Session {
   @@index([expiresAt])
 }
 
-/// آستانه‌ی تلاش‌های ورود ناموفق (rate limit) — per identifier+IP
 model LoginAttempt {
   id          String   @id @default(cuid())
   identifier  String
@@ -105,8 +106,6 @@ model LoginAttempt {
   @@index([identifier, attemptedAt])
   @@index([ip, attemptedAt])
 }
-
-// ============================ Audit Log (global) ============================
 
 model AuditLog {
   id        String   @id @default(cuid())
@@ -126,24 +125,138 @@ model AuditLog {
   @@index([actorId, createdAt])
 }
 
-// ============================ Org (referenced early; full in Phase 3) ============================
+// ============================ Org (full in Phase 3) ============================
 
 model Employee {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   fullName      String
-  personnelCode String   @unique
+  personnelCode String    @unique
   departmentId  String?
   position      String?
   managerId     String?
   email         String?
   phone         String?
-  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED | TERMINATED
+  status        String    @default("ACTIVE")
   hireDate      DateTime?
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   manager  Employee?  @relation("EmployeeManager", fields: [managerId], references: [id], onDelete: SetNull)
   reports  Employee[] @relation("EmployeeManager")
   user     User?
+}
+
+// ============================ Asset core (Phase 2) ============================
+
+model AssetCategory {
+  id                   String   @id @default(cuid())
+  name                 String
+  /// کد سه‌حرفی در کد دارایی — مثل IT / NET / FUR
+  code                 String   @unique
+  parentId             String?
+  description          String?
+  defaultWarrantyMonths Int?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  parent AssetCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children AssetCategory[] @relation("CategoryTree")
+  types   AssetType[]
+
+  @@index([parentId])
+}
+
+model AssetType {
+  id          String   @id @default(cuid())
+  name        String
+  /// کد سه‌حرفی نوع — مثل MOU / MON / LAP / SRV
+  code        String   @unique
+  categoryId  String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category AssetCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  assets   Asset[]
+
+  @@index([categoryId])
+}
+
+model Asset {
+  id                String    @id @default(cuid())
+  code              String    @unique
+  name              String
+  assetTypeId       String
+  brand             String?
+  model             String?
+  serialNumber      String?   @unique
+  purchaseDate      DateTime?
+  purchasePrice     Decimal?  @db.Decimal(14, 2)
+  currency          String    @default("IRR")
+  supplierId        String?
+  warrantyStart     DateTime?
+  warrantyEnd       DateTime?
+  locationId        String?
+  departmentId      String?
+  holderEmployeeId  String?
+  status            String    @default("IN_STOCK")
+  condition         String    @default("GOOD")
+  lifecycleStage    String    @default("IN_STOCK")
+  notes             String?
+  qrGeneratedAt     DateTime?
+  isDeleted         Boolean   @default(false)
+  retiredAt         DateTime?
+  disposedAt        DateTime?
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  assetType AssetType     @relation(fields: [assetTypeId], references: [id], onDelete: Restrict)
+  createdBy User?         @relation("AssetCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  events    AssetEvent[]
+
+  @@index([status, assetTypeId])
+  @@index([holderEmployeeId])
+  @@index([locationId])
+  @@index([departmentId])
+  @@index([supplierId])
+  @@index([warrantyEnd])
+  @@index([isDeleted, status])
+}
+
+model AssetEvent {
+  id             String   @id @default(cuid())
+  assetId        String
+  type           String
+  fromStatus     String?
+  toStatus       String?
+  fromEmployeeId String?
+  toEmployeeId   String?
+  fromLocationId String?
+  toLocationId   String?
+  actorId        String?
+  metadata       Json?
+  note           String?
+  occurredAt     DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  actor User? @relation("AssetEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([assetId, occurredAt])
+}
+
+/// شمارنده اتمیک پیشوندهای کد دارایی — increment با تراکنش
+model CodeSequence {
+  prefix String @id
+  seq    BigInt @default(0)
+}
+
+model Settings {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
 }

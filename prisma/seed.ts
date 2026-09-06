@@ -141,6 +141,82 @@ async function main() {
     console.log(`  role ${r.key}: ${permKeys.length} perms`);
   }
 
+  console.log("Seeding asset categories & types...");
+  // دسته‌ها و انواع پیش‌فرض — کدها در asset code استفاده می‌شوند
+  const CATS: { name: string; code: string; types: { name: string; code: string }[] }[] = [
+    {
+      name: "تجهیزات کامپیوتر",
+      code: "IT",
+      types: [
+        { name: "موس", code: "MOU" },
+        { name: "کیبورد", code: "KBD" },
+        { name: "مانیتور", code: "MON" },
+        { name: "لپ‌تاپ", code: "LAP" },
+        { name: "کیس رومیزی", code: "DTP" },
+        { name: "پرینتر", code: "PRN" },
+        { name: "اسکنر", code: "SCN" },
+      ],
+    },
+    {
+      name: "شبکه و سرور",
+      code: "NET",
+      types: [
+        { name: "سرور", code: "SRV" },
+        { name: "سوئیچ", code: "SWI" },
+        { name: "روتر", code: "RTR" },
+        { name: "یو‌پی‌اس", code: "UPS" },
+        { name: "تجهیزات شبکه", code: "NET" },
+      ],
+    },
+    {
+      name: "موبایل و تبلت",
+      code: "MOB",
+      types: [
+        { name: "موبایل", code: "PHN" },
+        { name: "تبلت", code: "TAB" },
+      ],
+    },
+    {
+      name: "مبلمان اداری",
+      code: "FUR",
+      types: [
+        { name: "میز", code: "DSK" },
+        { name: "صندلی", code: "CHR" },
+        { name: "کمد", code: "CAB" },
+      ],
+    },
+    {
+      name: "تجهیزات اتاق جلسات",
+      code: "MTG",
+      types: [
+        { name: "ویدئو وال", code: "VWL" },
+        { name: "ویدئو کنفرانس", code: "VCF" },
+        { name: "پروژکتور", code: "PRJ" },
+      ],
+    },
+    {
+      name: "عمومی",
+      code: "GEN",
+      types: [{ name: "سایر", code: "ETC" }],
+    },
+  ];
+
+  for (const c of CATS) {
+    const cat = await prisma.assetCategory.upsert({
+      where: { code: c.code },
+      update: { name: c.name },
+      create: { name: c.name, code: c.code },
+    });
+    for (const t of c.types) {
+      await prisma.assetType.upsert({
+        where: { code: t.code },
+        update: { name: t.name, categoryId: cat.id },
+        create: { name: t.name, code: t.code, categoryId: cat.id },
+      });
+    }
+  }
+  console.log(`  ${CATS.length} categories, ${CATS.reduce((a, c) => a + c.types.length, 0)} types`);
+
   console.log("Seeding admin user...");
   const adminHash = await bcrypt.hash("Admin@123", 12);
   await prisma.user.upsert({
