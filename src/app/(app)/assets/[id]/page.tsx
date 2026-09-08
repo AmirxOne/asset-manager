@@ -35,6 +35,10 @@ interface AssetDetail {
   warrantyEnd: string | null;
   createdAt: string;
   assetType: { name: string; code: string; category: { name: string; code: string } };
+  holder: { id: string; fullName: string; personnelCode: string } | null;
+  location: { id: string; name: string } | null;
+  department: { id: string; name: string } | null;
+  supplier: { id: string; name: string } | null;
   createdBy: { fullName: string } | null;
   events: {
     id: string;
@@ -126,6 +130,10 @@ export default function AssetDetailPage({ params }: { params: Promise<{ id: stri
   const rows: [string, React.ReactNode][] = [
     ["کد دارایی", <span key="c" dir="ltr" className="font-bold">{a.code}</span>],
     ["دسته / نوع", `${a.assetType.category.name} / ${a.assetType.name}`],
+    ["نگهدارنده", a.holder ? `${a.holder.fullName} (${a.holder.personnelCode})` : "—"],
+    ["محل", a.location?.name ?? "—"],
+    ["بخش", a.department?.name ?? "—"],
+    ["تأمین‌کننده", a.supplier?.name ?? "—"],
     ["برند / مدل", a.brand || a.model ? `${a.brand ?? "—"} ${a.model ?? ""}` : "—"],
     ["شماره سریال", a.serialNumber ? <span key="s" dir="ltr">{a.serialNumber}</span> : "—"],
     ["تاریخ خرید", a.purchaseDate ? faDate(a.purchaseDate) : "—"],

@@ -25,6 +25,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       where: { id, isDeleted: false },
       include: {
         assetType: { include: { category: true } },
+        holder: { select: { id: true, fullName: true, personnelCode: true } },
+        location: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
+        supplier: { select: { id: true, name: true } },
         events: {
           orderBy: { occurredAt: "desc" },
           take: 100,

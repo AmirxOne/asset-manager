@@ -29,7 +29,9 @@ export function AssignmentPanel({ assetId, status }: { assetId: string; status: 
   const { data: emps } = useQuery({
     queryKey: ["employees-options"],
     queryFn: () => api<{ employees: EmployeeOpt[] }>("/api/employees?options=1"),
-    enabled: modal !== null,
+    // پیش‌fetch — گزینه‌ها قبل از باز شدن مودال آماده‌اند (flaky E2E ریشه‌ای حل شد)
+    enabled: can("asset:assign") || can("asset:transfer"),
+    staleTime: 60_000,
   });
 
   const isAssigned = status === "ASSIGNED" || status === "IN_USE";

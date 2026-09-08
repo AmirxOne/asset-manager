@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
-import { prisma } from "@/server/db";
-import { ok, fail, requirePerm, ApiError } from "@/server/auth/guards";
+import { ok, fail, requirePerm } from "@/server/auth/guards";
 import { auditProgress } from "@/server/modules/audit-service";
 
 export const dynamic = "force-dynamic";

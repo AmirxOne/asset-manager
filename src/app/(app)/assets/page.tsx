@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { cn, faNum } from "@/lib";
@@ -42,6 +42,15 @@ export default function AssetsPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const canBulk = can("asset:bulk");
+
+  // پارامترهای URL (?q= جستجو / ?status= از داشبورد) را در mount بخوان
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const uq = sp.get("q");
+    const us = sp.get("status");
+    if (uq) setQ(uq);
+    if (us) setFilters((f) => ({ ...f, status: us }));
+  }, []);
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -97,14 +106,23 @@ export default function AssetsPage() {
             {data ? `${faNum(data.total)} دارایی` : "در حال بارگذاری…"}
           </p>
         </div>
-        {can("asset:create") && (
-          <Link href="/assets/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              ثبت دارایی جدید
-            </Button>
-          </Link>
-        )}
+        <div className="flex gap-2">
+          {can("asset:create") && (
+            <Link href="/assets/import">
+              <Button variant="outline">
+                ورود از CSV
+              </Button>
+            </Link>
+          )}
+          {can("asset:create") && (
+            <Link href="/assets/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                ثبت دارایی جدید
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <FilterBar groups={groups} value={filters} onChange={(v) => { setFilters(v); setPage(1); }}>

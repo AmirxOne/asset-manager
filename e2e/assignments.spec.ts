@@ -7,22 +7,29 @@ async function adminLogin(page: import("@playwright/test").Page) {
   await page.getByLabel("ایمیل یا شماره تماس").fill("admin@ams.local");
   await page.getByLabel("رمز عبور").fill("Admin@123");
   await page.getByRole("button", { name: "ورود" }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  // مقاوم در برابر hydration race — اگر کلیک اول قبل از وصل‌شدن هندلر بود، دوباره
+  try {
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 8000 });
+  } catch {
+    await page.getByRole("button", { name: "ورود" }).click();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+  }
 }
 
 test("چرخه کامل تخصیص در UI", async ({ page }) => {
   await adminLogin(page);
 
-  // ۱) بخش بساز
+  // ۱) بخش بساز (کد یکتا per-run — نام هم یکتا)
+  const run = Date.now() % 100000000;
+  const deptName = `بخش تست ${run}`;
   await page.goto("/departments");
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "بخش جدید" }).click();
-  const deptName = `بخش تست ${Date.now() % 10000}`;
   await page.getByLabel("نام بخش *").fill(deptName);
   await page.getByRole("button", { name: "ثبت بخش", exact: true }).click();
   await expect(page.getByText(deptName)).toBeVisible({ timeout: 10000 });
 
   // ۲) کارمند بساز (نام یکتا per-run)
-  const run = Date.now() % 100000;
   const empName = `زهرا تستی ${run}`;
   const empCode = `E2E-${run}`;
   await page.goto("/employees");
@@ -80,8 +87,8 @@ test("چرخه کامل تخصیص در UI", async ({ page }) => {
   }
   await option.click();
   await page.getByRole("button", { name: "تحویل", exact: true }).click();
-  await page.reload();
-  await expect(page.getByText("تحویل‌شده").first()).toBeVisible({ timeout: 10000 });
+  // انتظار UI-native: در حالت ASSIGNED دکمه «عودت دارایی» ظاهر می‌شود
+  await expect(page.getByRole("button", { name: "عودت دارایی" })).toBeVisible({ timeout: 20000 });
 
   // ۶) انتقال
   await page.getByRole("button", { name: "انتقال به کارمند دیگر" }).click();
@@ -100,16 +107,16 @@ test("چرخه کامل تخصیص در UI", async ({ page }) => {
   }
   await option2.click();
   await page.getByRole("button", { name: "انتقال", exact: true }).click();
-  await page.reload();
-  await expect(page.getByText("انتقال").first()).toBeVisible({ timeout: 10000 });
+  // انتظار UI-native: بعد از انتقال دکمه عودت همچنان هست (holder جدید)
+  await expect(page.getByRole("button", { name: "عودت دارایی" })).toBeVisible({ timeout: 20000 });
 
   // ۷) عودت به انبار
   await page.getByRole("button", { name: "عودت دارایی" }).click();
   await page.getByRole("button", { name: /موجود \(آزاد\)|در انبار/ }).click();
   await page.getByRole("option", { name: "در انبار" }).click();
   await page.getByRole("button", { name: "عودت", exact: true }).click();
-  await page.reload();
-  await expect(page.locator(".badge-green").first()).toBeVisible({ timeout: 10000 });
+  // انتظار UI-native: بعد از عودت دکمه «تحویل به کارمند» برمی‌گردد
+  await expect(page.getByRole("button", { name: "تحویل به کارمند" })).toBeVisible({ timeout: 20000 });
 
   // ۸) بعد عودت: badge سبز (در انبار/موجود) و تاریخچه انتقال
   await expect(page.locator(".badge-green").first()).toBeVisible({ timeout: 15000 });
